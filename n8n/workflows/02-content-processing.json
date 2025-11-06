@@ -69,7 +69,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
         "authentication": "none",
         "options": {},
         "bodyParametersJson": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"You are an expert in ancient medicine, herbalism, and healing practices. Analyze the following German historical text and extract the 3-5 most interesting, surprising, or educational facts about healing, medicine, plants, or rituals.\\n\\nFor each fact, provide:\\n1. The main fact (1-2 sentences)\\n2. Why it's interesting (1 sentence)\\n3. A potential viral hook angle (1 sentence)\\n4. Relevant keywords\\n\\nText to analyze:\\n\\n{{ $json.text_content }}\\n\\nReturn your response in JSON format with this structure:\\n{\\n  \\\"facts\\\": [\\n    {\\n      \\\"fact\\\": \\\"...\\\",\\n      \\\"why_interesting\\\": \\\"...\\\",\\n      \\\"viral_angle\\\": \\\"...\\\",\\n      \\\"keywords\\\": [\\\"...\\\"]\\n    }\\n  ]\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 2048,\n    \"responseMimeType\": \"application/json\"\n  }\n}"
@@ -115,7 +115,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
         "authentication": "none",
         "options": {},
         "bodyParametersJson": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"You are a viral short-form video scriptwriter specializing in historical and educational content. Create an engaging 50-second video script (approximately 150 words) based on this fact about ancient medicine/healing:\\n\\nFACT: {{ $json.selected_fact.fact }}\\n\\nVIRAL ANGLE: {{ $json.selected_fact.viral_angle }}\\n\\nScript Requirements:\\n1. START with a powerful hook (first 3 seconds) that stops scrolling\\n2. Use storytelling narrative style\\n3. Include a surprising reveal or \\\"but here's the twist\\\" moment\\n4. Make it educational but entertaining\\n5. End with a thought-provoking question or statement\\n6. Write in a conversational, engaging tone\\n7. Keep it exactly 140-160 words for 50-second duration\\n8. Target language: {{ $env.OUTPUT_LANGUAGE || 'de' }}\\n\\nReturn JSON format:\\n{\\n  \\\"hook\\\": \\\"First 10 words\\\",\\n  \\\"full_script\\\": \\\"Complete 150-word script\\\",\\n  \\\"word_count\\\": 150,\\n  \\\"key_visual_moments\\\": [\\\"moment1\\\", \\\"moment2\\\"],\\n  \\\"emotional_tone\\\": \\\"mysterious/fascinating/shocking/etc\\\",\\n  \\\"suggested_hashtags\\\": [\\\"hashtag1\\\", \\\"hashtag2\\\"]\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.8,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 1024,\n    \"responseMimeType\": \"application/json\"\n  }\n}"
@@ -150,7 +150,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
         "authentication": "none",
         "options": {},
         "bodyParametersJson": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Based on this video script about ancient medicine, create a detailed visual prompt for AI video generation. The visual should be elegant, harmonic, ASMR-friendly with ancient/mystical atmosphere.\\n\\nSCRIPT: {{ $json.full_script }}\\n\\nKEY MOMENTS: {{ JSON.stringify($json.key_visual_moments) }}\\n\\nTONE: {{ $json.emotional_tone }}\\n\\nCreate a prompt for ComfyUI video generation that:\\n1. Describes the overall aesthetic (earth tones, warm, mystical)\\n2. Specifies visual elements (ancient texts, herbs, nature, sacred geometry)\\n3. Describes camera movement (slow zoom, gentle pan)\\n4. Sets the mood (calming, mysterious, ancient wisdom)\\n5. Keeps it under 200 words\\n\\nReturn JSON:\\n{\\n  \\\"video_prompt\\\": \\\"Detailed visual description\\\",\\n  \\\"style_keywords\\\": [\\\"keyword1\\\", \\\"keyword2\\\"],\\n  \\\"color_palette\\\": [\\\"color1\\\", \\\"color2\\\"],\\n  \\\"camera_movements\\\": \\\"movement description\\\"\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"maxOutputTokens\": 512,\n    \"responseMimeType\": \"application/json\"\n  }\n}"
