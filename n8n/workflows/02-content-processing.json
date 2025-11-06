@@ -1,0 +1,354 @@
+{
+  "name": "02 - AI Content Processing & Script Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-processing",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "id": "webhook-trigger",
+      "webhookId": "content-processing"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.text_source.url }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "name": "Download Text Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [450, 300],
+      "id": "download-text"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean and prepare text for AI processing\nconst rawText = $input.item.binary?.data?.data?.toString('utf-8') || $input.item.json.data || '';\n\n// Remove common OCR artifacts\nlet cleanText = rawText\n  .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, '') // Control characters\n  .replace(/\\f/g, '\\n') // Form feeds\n  .replace(/[\\r\\n]{3,}/g, '\\n\\n') // Multiple newlines\n  .replace(/[ \\t]+/g, ' ') // Multiple spaces\n  .replace(/^[ \\t]+|[ \\t]+$/gm, ''); // Leading/trailing spaces per line\n\n// Split into manageable chunks (max 3000 words per chunk for LLM processing)\nconst words = cleanText.split(/\\s+/);\nconst chunkSize = 3000;\nconst chunks = [];\n\nfor (let i = 0; i < words.length; i += chunkSize) {\n  const chunk = words.slice(i, i + chunkSize).join(' ');\n  if (chunk.trim().length > 500) { // Only include substantial chunks\n    chunks.push({\n      index: Math.floor(i / chunkSize),\n      text: chunk,\n      word_count: chunk.split(/\\s+/).length,\n      char_count: chunk.length\n    });\n  }\n}\n\n// Limit to first 5 chunks to avoid overwhelming processing\nconst limitedChunks = chunks.slice(0, 5);\n\nreturn limitedChunks.map(chunk => ({\n  json: {\n    chunk_index: chunk.index,\n    text_content: chunk.text,\n    word_count: chunk.word_count,\n    char_count: chunk.char_count,\n    book_info: $input.item.json.book_info,\n    processing_timestamp: new Date().toISOString()\n  }\n}));"
+      },
+      "name": "Clean & Chunk Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "id": "clean-text"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "requestOptions": {
+          "requestOptions": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "name": "Gemini API Credentials",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 300],
+      "id": "gemini-creds",
+      "disabled": true,
+      "notes": "Configure with your Gemini API key"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "authentication": "none",
+        "options": {},
+        "bodyParametersJson": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"You are an expert in ancient medicine, herbalism, and healing practices. Analyze the following German historical text and extract the 3-5 most interesting, surprising, or educational facts about healing, medicine, plants, or rituals.\\n\\nFor each fact, provide:\\n1. The main fact (1-2 sentences)\\n2. Why it's interesting (1 sentence)\\n3. A potential viral hook angle (1 sentence)\\n4. Relevant keywords\\n\\nText to analyze:\\n\\n{{ $json.text_content }}\\n\\nReturn your response in JSON format with this structure:\\n{\\n  \\\"facts\\\": [\\n    {\\n      \\\"fact\\\": \\\"...\\\",\\n      \\\"why_interesting\\\": \\\"...\\\",\\n      \\\"viral_angle\\\": \\\"...\\\",\\n      \\\"keywords\\\": [\\\"...\\\"]\\n    }\\n  ]\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 2048,\n    \"responseMimeType\": \"application/json\"\n  }\n}"
+      },
+      "name": "Extract Facts with Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 300],
+      "id": "extract-facts"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini response and extract facts\nconst response = $input.item.json;\nconst textContent = response.candidates?.[0]?.content?.parts?.[0]?.text || '{\"facts\": []}';\n\nlet factsData;\ntry {\n  factsData = JSON.parse(textContent);\n} catch (e) {\n  // Fallback if JSON parsing fails\n  factsData = { facts: [] };\n}\n\nconst facts = factsData.facts || [];\n\nreturn facts.map((fact, index) => ({\n  json: {\n    fact_id: `${$node['Clean & Chunk Text'].json.book_info.identifier}_chunk${$node['Clean & Chunk Text'].json.chunk_index}_fact${index}`,\n    fact: fact.fact,\n    why_interesting: fact.why_interesting,\n    viral_angle: fact.viral_angle,\n    keywords: fact.keywords || [],\n    source_book: $node['Clean & Chunk Text'].json.book_info,\n    chunk_index: $node['Clean & Chunk Text'].json.chunk_index,\n    extracted_timestamp: new Date().toISOString()\n  }\n}));"
+      },
+      "name": "Parse Facts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300],
+      "id": "parse-facts"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "name": "Merge All Facts",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "id": "merge-facts"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Score and select best fact for video\nconst allFacts = $input.all();\n\nif (allFacts.length === 0) {\n  throw new Error('No facts extracted from the book');\n}\n\n// Simple scoring: prioritize unique keywords and viral angles\nconst scoredFacts = allFacts.map(item => {\n  const fact = item.json;\n  let score = 0;\n  \n  // Length score (prefer substantial but not too long facts)\n  const factLength = fact.fact.length;\n  if (factLength > 100 && factLength < 400) score += 10;\n  \n  // Keyword diversity score\n  score += (fact.keywords?.length || 0) * 2;\n  \n  // Viral angle present\n  if (fact.viral_angle && fact.viral_angle.length > 20) score += 15;\n  \n  // Random factor for variety\n  score += Math.random() * 5;\n  \n  return {\n    ...fact,\n    score: score\n  };\n});\n\n// Sort by score\nscored Facts.sort((a, b) => b.score - a.score);\n\n// Select top fact\nconst selectedFact = scoredFacts[0];\n\nreturn {\n  json: {\n    selected_fact: selectedFact,\n    total_facts_found: allFacts.length,\n    selection_score: selectedFact.score,\n    ready_for_script_generation: true\n  }\n};"
+      },
+      "name": "Select Best Fact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300],
+      "id": "select-fact"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "authentication": "none",
+        "options": {},
+        "bodyParametersJson": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"You are a viral short-form video scriptwriter specializing in historical and educational content. Create an engaging 50-second video script (approximately 150 words) based on this fact about ancient medicine/healing:\\n\\nFACT: {{ $json.selected_fact.fact }}\\n\\nVIRAL ANGLE: {{ $json.selected_fact.viral_angle }}\\n\\nScript Requirements:\\n1. START with a powerful hook (first 3 seconds) that stops scrolling\\n2. Use storytelling narrative style\\n3. Include a surprising reveal or \\\"but here's the twist\\\" moment\\n4. Make it educational but entertaining\\n5. End with a thought-provoking question or statement\\n6. Write in a conversational, engaging tone\\n7. Keep it exactly 140-160 words for 50-second duration\\n8. Target language: {{ $env.OUTPUT_LANGUAGE || 'de' }}\\n\\nReturn JSON format:\\n{\\n  \\\"hook\\\": \\\"First 10 words\\\",\\n  \\\"full_script\\\": \\\"Complete 150-word script\\\",\\n  \\\"word_count\\\": 150,\\n  \\\"key_visual_moments\\\": [\\\"moment1\\\", \\\"moment2\\\"],\\n  \\\"emotional_tone\\\": \\\"mysterious/fascinating/shocking/etc\\\",\\n  \\\"suggested_hashtags\\\": [\\\"hashtag1\\\", \\\"hashtag2\\\"]\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.8,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 1024,\n    \"responseMimeType\": \"application/json\"\n  }\n}"
+      },
+      "name": "Generate Script with Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1650, 300],
+      "id": "generate-script"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse script response\nconst response = $input.item.json;\nconst textContent = response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';\n\nlet scriptData;\ntry {\n  scriptData = JSON.parse(textContent);\n} catch (e) {\n  throw new Error('Failed to parse script JSON from Gemini');\n}\n\nconst fact = $node['Select Best Fact'].json.selected_fact;\n\nreturn {\n  json: {\n    script_id: `script_${Date.now()}`,\n    fact_id: fact.fact_id,\n    hook: scriptData.hook,\n    full_script: scriptData.full_script,\n    word_count: scriptData.word_count,\n    estimated_duration: Math.round((scriptData.word_count / 3) * 1000), // ms\n    key_visual_moments: scriptData.key_visual_moments || [],\n    emotional_tone: scriptData.emotional_tone || 'mysterious',\n    suggested_hashtags: scriptData.suggested_hashtags || [],\n    source_fact: fact.fact,\n    source_book: fact.source_book,\n    created_timestamp: new Date().toISOString(),\n    status: 'ready_for_video_generation'\n  }\n};"
+      },
+      "name": "Parse Script",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 300],
+      "id": "parse-script"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "filePath": "=/home/user/medicine/data/scripts/{{ $json.script_id }}.json"
+      },
+      "name": "Save Script File",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [2050, 300],
+      "id": "save-script"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "authentication": "none",
+        "options": {},
+        "bodyParametersJson": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Based on this video script about ancient medicine, create a detailed visual prompt for AI video generation. The visual should be elegant, harmonic, ASMR-friendly with ancient/mystical atmosphere.\\n\\nSCRIPT: {{ $json.full_script }}\\n\\nKEY MOMENTS: {{ JSON.stringify($json.key_visual_moments) }}\\n\\nTONE: {{ $json.emotional_tone }}\\n\\nCreate a prompt for ComfyUI video generation that:\\n1. Describes the overall aesthetic (earth tones, warm, mystical)\\n2. Specifies visual elements (ancient texts, herbs, nature, sacred geometry)\\n3. Describes camera movement (slow zoom, gentle pan)\\n4. Sets the mood (calming, mysterious, ancient wisdom)\\n5. Keeps it under 200 words\\n\\nReturn JSON:\\n{\\n  \\\"video_prompt\\\": \\\"Detailed visual description\\\",\\n  \\\"style_keywords\\\": [\\\"keyword1\\\", \\\"keyword2\\\"],\\n  \\\"color_palette\\\": [\\\"color1\\\", \\\"color2\\\"],\\n  \\\"camera_movements\\\": \\\"movement description\\\"\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"maxOutputTokens\": 512,\n    \"responseMimeType\": \"application/json\"\n  }\n}"
+      },
+      "name": "Generate Visual Prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2250, 300],
+      "id": "generate-visual"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse visual prompt\nconst response = $input.item.json;\nconst textContent = response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';\n\nlet visualData;\ntry {\n  visualData = JSON.parse(textContent);\n} catch (e) {\n  visualData = {\n    video_prompt: 'Ancient manuscript pages with herbal illustrations, warm candlelight, mystical atmosphere',\n    style_keywords: ['ancient', 'mystical', 'herbs'],\n    color_palette: ['warm brown', 'forest green', 'golden yellow'],\n    camera_movements: 'slow zoom in'\n  };\n}\n\nconst scriptData = $node['Parse Script'].json;\n\nreturn {\n  json: {\n    ...scriptData,\n    visual_prompt: visualData.video_prompt,\n    style_keywords: visualData.style_keywords,\n    color_palette: visualData.color_palette,\n    camera_movements: visualData.camera_movements,\n    ready_for_comfyui: true,\n    next_workflow: 'video_generation'\n  }\n};"
+      },
+      "name": "Combine Script & Visual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 300],
+      "id": "combine-data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/video-generation",
+        "authentication": "none",
+        "options": {},
+        "bodyParametersJson": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Trigger Video Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2650, 300],
+      "id": "trigger-video",
+      "notes": "Triggers workflow: 03-video-generation"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "filePath": "/home/user/medicine/data/facts-database.jsonl",
+        "options": {
+          "jsonFormat": "jsonl"
+        }
+      },
+      "name": "Archive All Facts",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [1250, 500],
+      "id": "archive-facts",
+      "notes": "Store all extracted facts for future use"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download Text Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Text Content": {
+      "main": [
+        [
+          {
+            "node": "Clean & Chunk Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean & Chunk Text": {
+      "main": [
+        [
+          {
+            "node": "Extract Facts with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Facts with Gemini": {
+      "main": [
+        [
+          {
+            "node": "Parse Facts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Facts": {
+      "main": [
+        [
+          {
+            "node": "Merge All Facts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Facts": {
+      "main": [
+        [
+          {
+            "node": "Select Best Fact",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Archive All Facts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Best Fact": {
+      "main": [
+        [
+          {
+            "node": "Generate Script with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Script with Gemini": {
+      "main": [
+        [
+          {
+            "node": "Parse Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Script": {
+      "main": [
+        [
+          {
+            "node": "Save Script File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Script File": {
+      "main": [
+        [
+          {
+            "node": "Generate Visual Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Visual Prompt": {
+      "main": [
+        [
+          {
+            "node": "Combine Script & Visual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Script & Visual": {
+      "main": [
+        [
+          {
+            "node": "Trigger Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-06T00:00:00.000Z",
+  "versionId": "1"
+}

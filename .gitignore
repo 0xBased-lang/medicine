@@ -1,0 +1,118 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# n8n data
+n8n_data/
+*.n8n
+
+# Data files (temporary/generated)
+data/manuscripts/*
+data/extracted-texts/*
+!data/manuscripts/.gitkeep
+!data/extracted-texts/.gitkeep
+
+# Output files (generated videos)
+output/videos/*.mp4
+output/videos/*.mov
+output/thumbnails/*.jpg
+output/thumbnails/*.png
+!output/videos/.gitkeep
+!output/thumbnails/.gitkeep
+
+# Keep metadata and scripts
+!output/metadata/
+!data/scripts/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ComfyUI
+comfyui/models/*.safetensors
+comfyui/models/*.ckpt
+comfyui/models/*.pt
+comfyui/models/*.pth
+comfyui/input/*
+comfyui/output/*
+comfyui/temp/*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# Database files (if using SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# Credentials (extra safety)
+credentials.json
+secrets.json
+*_secret.json
+api_keys.txt
+
+# Large archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Video editing temp files
+*.mlt
+*.kdenlive
+
+# Test files
+test_output/
+test_data/
+
+# Don't ignore these important files
+!.gitkeep
+!.env.example
+!README.md
+!LICENSE

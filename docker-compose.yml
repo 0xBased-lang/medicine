@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_medicine
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Basic Auth
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme123  # CHANGE THIS!
+
+      # Server Config
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+
+      # Timezone
+      - GENERIC_TIMEZONE=Europe/Berlin
+      - TZ=Europe/Berlin
+
+      # Execution
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+
+      # Load environment variables from .env file
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+
+    volumes:
+      # n8n data persistence
+      - ./n8n_data:/home/node/.n8n
+
+      # Mount project directory for file access
+      - .:/home/user/medicine:rw
+
+      # Mount workflows for easy import
+      - ./n8n/workflows:/home/node/.n8n/workflows:ro
+
+    networks:
+      - medicine_network
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  medicine_network:
+    driver: bridge
+
+# Optional: Add additional services as needed
+# Uncomment and configure if you want to run TTS server in Docker
+
+# tts_server:
+#   build:
+#     context: ./tts-server
+#     dockerfile: Dockerfile
+#   container_name: tts_medicine
+#   restart: unless-stopped
+#   ports:
+#     - "8020:8020"
+#   networks:
+#     - medicine_network
+#   volumes:
+#     - ./tts-server/voices:/voices:ro

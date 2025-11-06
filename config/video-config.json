@@ -1,0 +1,432 @@
+{
+  "description": "Video generation configuration for ComfyUI and content creation",
+  "last_updated": "2025-11-06",
+
+  "video_specs": {
+    "format": "mp4",
+    "codec": "h264",
+    "resolution": {
+      "width": 1080,
+      "height": 1920,
+      "aspect_ratio": "9:16",
+      "description": "Vertical format for TikTok, Instagram Reels, YouTube Shorts"
+    },
+    "fps": 24,
+    "bitrate": "5M",
+    "duration": {
+      "min": 30,
+      "target": 45,
+      "max": 60,
+      "unit": "seconds"
+    }
+  },
+
+  "visual_style": {
+    "aesthetic": "elegant, harmonic, ASMR-friendly, ancient yet modern",
+    "color_palette": [
+      "earth tones",
+      "warm browns",
+      "forest greens",
+      "golden yellows",
+      "deep purples",
+      "muted reds"
+    ],
+    "mood_keywords": [
+      "mystical",
+      "calming",
+      "ancient wisdom",
+      "natural",
+      "sacred",
+      "peaceful",
+      "mysterious"
+    ],
+    "visual_elements": [
+      "ancient manuscripts with aging effect",
+      "botanical illustrations",
+      "nature scenes (forests, herbs, plants)",
+      "sacred geometry",
+      "soft glowing effects",
+      "parchment textures",
+      "candlelight aesthetics"
+    ],
+    "animation_style": {
+      "pacing": "slow and deliberate",
+      "transitions": "smooth fades",
+      "camera_movement": "gentle zoom and pan",
+      "effects": "subtle particle effects, light rays"
+    }
+  },
+
+  "comfyui_settings": {
+    "primary_model": "LTX Video v0.9.5",
+    "backup_model": "Hunyuan 1.3B",
+    "image_model": "FLUX.1-schnell",
+
+    "ltx_video_settings": {
+      "steps": 20,
+      "cfg_scale": 7.5,
+      "sampler": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "seed": -1,
+      "frame_rate": 24,
+      "motion_bucket_id": 127,
+      "motion_strength": 0.5
+    },
+
+    "flux_image_settings": {
+      "steps": 4,
+      "cfg_scale": 1.0,
+      "sampler": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "seed": -1
+    },
+
+    "optimization_for_m1": {
+      "use_cpu_offload": true,
+      "use_fp16": true,
+      "vae_slicing": true,
+      "attention_slicing": true,
+      "batch_size": 1,
+      "tile_size": 512
+    }
+  },
+
+  "script_formatting": {
+    "structure": {
+      "hook": {
+        "duration": 3,
+        "word_count": 10,
+        "description": "Attention-grabbing opening"
+      },
+      "context": {
+        "duration": 5,
+        "word_count": 15,
+        "description": "Set the scene/time period"
+      },
+      "main_content": {
+        "duration": 35,
+        "word_count": 100,
+        "description": "The interesting fact/story"
+      },
+      "reveal": {
+        "duration": 5,
+        "word_count": 15,
+        "description": "The surprising element"
+      },
+      "outro": {
+        "duration": 2,
+        "word_count": 10,
+        "description": "Call-to-action or teaser"
+      }
+    },
+
+    "total": {
+      "duration": 50,
+      "word_count": 150,
+      "speaking_rate": 180
+    },
+
+    "hook_templates": [
+      "In [year], [people] discovered something incredible about [plant/practice]...",
+      "Ancient [culture] knew a secret about [healing/plant] that modern science just confirmed...",
+      "This [plant/ritual] was banned for centuries because it was too powerful...",
+      "Before [modern medicine], [people] used [plant/method] to cure [ailment] - and it worked...",
+      "You won't believe what [ancient people] used [plant] for...",
+      "Hidden in old German texts: a forgotten cure for [common problem]...",
+      "Medieval healers knew something about [plant] that we forgot...",
+      "This ancient ritual sounds crazy, but the science is real..."
+    ],
+
+    "storytelling_framework": {
+      "narrative_arc": "problem → discovery → solution → surprise",
+      "tone": "conversational, storytelling, educational but entertaining",
+      "pov": "second person (you) or narrative (they)",
+      "tense": "past for historical, present for facts",
+      "language_level": "accessible to general audience, avoid jargon"
+    }
+  },
+
+  "tts_settings": {
+    "provider": "coqui_xtts",
+    "language": "de",
+    "voice_characteristics": {
+      "gender": "neutral",
+      "age": "adult",
+      "style": "storyteller",
+      "emotion": "calm, mysterious, engaging"
+    },
+    "audio_processing": {
+      "speed": 1.0,
+      "pitch": 0,
+      "volume": 0.8,
+      "normalize": true,
+      "noise_reduction": true,
+      "compression": true
+    },
+    "fallback": {
+      "provider": "edge_tts",
+      "voice": "de-DE-ConradNeural"
+    }
+  },
+
+  "music_settings": {
+    "provider": "mubert",
+    "genres": [
+      "ambient",
+      "asmr",
+      "meditation",
+      "nature sounds",
+      "mystical",
+      "ethnic",
+      "calm instrumental"
+    ],
+    "mood": [
+      "peaceful",
+      "mysterious",
+      "ancient",
+      "sacred",
+      "contemplative"
+    ],
+    "instruments": [
+      "flute",
+      "strings",
+      "bells",
+      "singing bowls",
+      "nature sounds",
+      "soft percussion"
+    ],
+    "audio_settings": {
+      "volume": 0.25,
+      "fade_in": 2.0,
+      "fade_out": 2.0,
+      "ducking": {
+        "enabled": true,
+        "amount": 0.5,
+        "description": "Lower music volume during voiceover"
+      }
+    },
+    "fallback_tracks": [
+      "data/music/ambient-forest.mp3",
+      "data/music/mystical-atmosphere.mp3",
+      "data/music/ancient-wisdom.mp3"
+    ]
+  },
+
+  "text_overlay_settings": {
+    "enabled": true,
+    "style": {
+      "font": "Cinzel",
+      "fallback_fonts": [
+        "Crimson Text",
+        "Libre Baskerville",
+        "EB Garamond"
+      ],
+      "size": 48,
+      "color": "#F5E6D3",
+      "stroke_color": "#2C1810",
+      "stroke_width": 2,
+      "shadow": {
+        "enabled": true,
+        "color": "#000000",
+        "blur": 4,
+        "offset_x": 2,
+        "offset_y": 2
+      }
+    },
+    "position": {
+      "horizontal": "center",
+      "vertical": "center",
+      "margin": 50
+    },
+    "animation": {
+      "type": "fade_in_out",
+      "duration": 0.5,
+      "timing": "sync_with_voiceover"
+    },
+    "display_rules": {
+      "show_key_facts": true,
+      "show_plant_names": true,
+      "show_dates": true,
+      "max_words_on_screen": 5,
+      "duration_per_word": 1.0
+    }
+  },
+
+  "content_types": {
+    "fact_focused": {
+      "description": "Quick interesting fact with visual",
+      "duration": 30,
+      "visual_approach": "static image with zoom/pan",
+      "best_for": "Short, punchy content"
+    },
+    "story_based": {
+      "description": "Narrative about historical discovery or ritual",
+      "duration": 60,
+      "visual_approach": "generated video scenes",
+      "best_for": "Engaging storytelling"
+    },
+    "comparison": {
+      "description": "Then vs Now - ancient method vs modern",
+      "duration": 45,
+      "visual_approach": "split screen or transition",
+      "best_for": "Educational content"
+    },
+    "mystery_reveal": {
+      "description": "Question hook → journey → answer reveal",
+      "duration": 50,
+      "visual_approach": "progressive reveal",
+      "best_for": "High engagement"
+    }
+  },
+
+  "platform_specific": {
+    "tiktok": {
+      "max_duration": 60,
+      "optimal_duration": 30,
+      "hooks": "ultra fast (1-2 sec)",
+      "captions": "essential",
+      "hashtag_count": 4
+    },
+    "instagram_reels": {
+      "max_duration": 90,
+      "optimal_duration": 45,
+      "hooks": "fast (2-3 sec)",
+      "captions": "recommended",
+      "hashtag_count": 8
+    },
+    "youtube_shorts": {
+      "max_duration": 60,
+      "optimal_duration": 50,
+      "hooks": "moderate (3-4 sec)",
+      "captions": "optional",
+      "hashtag_count": 5
+    },
+    "twitter": {
+      "max_duration": 140,
+      "optimal_duration": 60,
+      "hooks": "text-based",
+      "captions": "essential",
+      "hashtag_count": 3
+    }
+  },
+
+  "quality_control": {
+    "video_checks": [
+      "resolution_correct",
+      "aspect_ratio_correct",
+      "duration_within_range",
+      "audio_sync",
+      "no_visual_artifacts",
+      "text_readable"
+    ],
+    "content_checks": [
+      "fact_accuracy",
+      "cultural_sensitivity",
+      "no_medical_claims",
+      "attribution_present",
+      "disclaimer_if_needed"
+    ],
+    "technical_checks": [
+      "file_size_under_limit",
+      "format_compatible",
+      "audio_quality_acceptable",
+      "video_quality_acceptable"
+    ]
+  },
+
+  "post_production": {
+    "color_grading": {
+      "enabled": true,
+      "preset": "warm_vintage",
+      "adjustments": {
+        "brightness": 0,
+        "contrast": 10,
+        "saturation": -10,
+        "warmth": 15,
+        "vignette": 20
+      }
+    },
+    "sharpening": {
+      "enabled": true,
+      "amount": 0.3
+    },
+    "stabilization": {
+      "enabled": false,
+      "description": "Not needed for generated content"
+    }
+  },
+
+  "metadata_generation": {
+    "title": {
+      "format": "[Hook] | Ancient Medicine #shorts",
+      "max_length": 100,
+      "include_keywords": true
+    },
+    "description": {
+      "template": "[Full fact description]\n\n🌿 Source: [Book title] (Archive.org)\n📅 Published: [Date]\n\n⚠️ Disclaimer: Historical information for educational purposes only. Not medical advice.\n\n#AncientMedicine #Herbalism #History #[specific tags]",
+      "max_length": 2200
+    },
+    "hashtags": {
+      "primary": [
+        "#AncientMedicine",
+        "#Herbalism",
+        "#NaturalHealing",
+        "#History",
+        "#MedicalHistory"
+      ],
+      "secondary": [
+        "#Plants",
+        "#Wellness",
+        "#TraditionalMedicine",
+        "#DidYouKnow",
+        "#LearnOnTikTok"
+      ],
+      "specific": {
+        "german": [
+          "#Heilkunde",
+          "#Kräuterkunde",
+          "#DeutscheGeschichte"
+        ],
+        "shamanic": [
+          "#Shamanism",
+          "#SpiritualHealing",
+          "#IndigenousWisdom"
+        ],
+        "plants": [
+          "#Herbology",
+          "#PlantMedicine",
+          "#Botany"
+        ]
+      }
+    }
+  },
+
+  "a_b_testing": {
+    "enabled": false,
+    "variations_per_content": 2,
+    "test_variables": [
+      "hook_style",
+      "visual_style",
+      "music_genre",
+      "script_tone"
+    ],
+    "evaluation_period_days": 7,
+    "metrics": [
+      "views",
+      "watch_time",
+      "engagement_rate",
+      "shares",
+      "comments"
+    ]
+  },
+
+  "notes": [
+    "Video settings optimized for M1 Mac 24GB",
+    "Focus on quality over quantity - 1 great video per day",
+    "ASMR-friendly means soft, calming audio and visuals",
+    "Always include disclaimers for medical content",
+    "Test different content types to see what resonates"
+  ]
+}

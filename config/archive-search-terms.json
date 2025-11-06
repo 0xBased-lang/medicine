@@ -1,0 +1,255 @@
+{
+  "description": "Search terms for discovering German medical, herbalism, and shamanic texts on Archive.org",
+  "last_updated": "2025-11-06",
+
+  "search_strategies": [
+    {
+      "name": "German Medicine & Herbalism",
+      "enabled": true,
+      "priority": 1,
+      "terms": {
+        "primary": [
+          "deutsche Heilkunde",
+          "deutsche Medizin Geschichte",
+          "Kräuterkunde",
+          "Heilpflanzen",
+          "Phytotherapie",
+          "Volksmedizin",
+          "traditionelle Heilkunde",
+          "Naturheilkunde",
+          "pflanzliche Heilmittel",
+          "Kräuterbuch"
+        ],
+        "secondary": [
+          "Heilkräuter",
+          "Arzneipflanzen",
+          "Heilmittel",
+          "Hausmittel",
+          "Naturheilverfahren",
+          "Heilpraktiker",
+          "botanische Medizin",
+          "Kräutermedizin"
+        ]
+      },
+      "filters": {
+        "language": "ger",
+        "mediatype": "texts",
+        "format": "pdf OR djvu OR text",
+        "subject": "medicine OR herbs OR plants OR healing"
+      }
+    },
+
+    {
+      "name": "Germanic & Norse Traditions",
+      "enabled": true,
+      "priority": 2,
+      "terms": {
+        "primary": [
+          "germanische Heilkunde",
+          "nordische Medizin",
+          "Wikinger Heilkunde",
+          "germanische Kräuter",
+          "nordische Heilpflanzen",
+          "germanische Magie Heilung",
+          "Runenmagie Heilung"
+        ],
+        "secondary": [
+          "nordische Mythologie Heilung",
+          "germanische Götter Heilung",
+          "Odin Heilung",
+          "germanische Rituale"
+        ]
+      },
+      "filters": {
+        "language": "ger OR eng",
+        "mediatype": "texts",
+        "subject": "germanic OR norse OR viking OR runes"
+      }
+    },
+
+    {
+      "name": "Shamanism & Rituals",
+      "enabled": true,
+      "priority": 3,
+      "terms": {
+        "primary": [
+          "Schamanismus",
+          "schamanische Heilung",
+          "Heilrituale",
+          "spirituelle Heilung",
+          "Naturvölker Medizin",
+          "indigene Heilkunde",
+          "Stammesmedizin"
+        ],
+        "secondary": [
+          "Heilzeremonien",
+          "traditionelle Rituale",
+          "spirituelle Pflanzen",
+          "Heilpflanzen Rituale",
+          "schamanische Praktiken"
+        ]
+      },
+      "filters": {
+        "language": "ger OR eng",
+        "mediatype": "texts",
+        "subject": "shamanism OR ritual OR indigenous OR tribal"
+      }
+    },
+
+    {
+      "name": "Historical German Medical Texts",
+      "enabled": true,
+      "priority": 4,
+      "terms": {
+        "primary": [
+          "Arzneibuch",
+          "Apotheke Geschichte",
+          "mittelalterliche Medizin",
+          "historische Heilkunde",
+          "alte Medizinbücher",
+          "Klostermedizin",
+          "Hildegard von Bingen"
+        ],
+        "secondary": [
+          "Paracelsus",
+          "historische Pharmakologie",
+          "mittelalterliche Kräuter",
+          "Mönchsmedizin",
+          "Klosterapotheke"
+        ]
+      },
+      "filters": {
+        "language": "ger",
+        "mediatype": "texts",
+        "date": "[1400 TO 1950]",
+        "subject": "medicine OR pharmacy OR herbs"
+      }
+    },
+
+    {
+      "name": "Plant & Nature Healing",
+      "enabled": true,
+      "priority": 5,
+      "terms": {
+        "primary": [
+          "Pflanzenheilkunde",
+          "Naturmedizin",
+          "Waldmedizin",
+          "essbare Wildpflanzen",
+          "Heilpflanzen Europa",
+          "heimische Heilkräuter",
+          "Wildkräuter Heilung"
+        ],
+        "secondary": [
+          "Baumheilkunde",
+          "Pilze Heilung",
+          "Moos Heilung",
+          "Wurzeln Heilkraft",
+          "Blütenheilkunde",
+          "Samen Heilkraft"
+        ]
+      },
+      "filters": {
+        "language": "ger",
+        "mediatype": "texts",
+        "subject": "plants OR botany OR nature OR herbs"
+      }
+    },
+
+    {
+      "name": "German Folk Medicine",
+      "enabled": true,
+      "priority": 6,
+      "terms": {
+        "primary": [
+          "Volksmedizin Deutschland",
+          "Bauernmedizin",
+          "traditionelle deutsche Heilkunde",
+          "Hausmittel Großmutter",
+          "alte Heilrezepte",
+          "Volksweisheit Heilung"
+        ],
+        "secondary": [
+          "Aberglaube Heilung",
+          "magische Heilkunde",
+          "Brauchtum Heilung",
+          "traditionelle Rezepte"
+        ]
+      },
+      "filters": {
+        "language": "ger",
+        "mediatype": "texts",
+        "subject": "folk medicine OR traditional medicine"
+      }
+    }
+  ],
+
+  "archive_org_api": {
+    "base_url": "https://archive.org/advancedsearch.php",
+    "output_format": "json",
+    "fields": [
+      "identifier",
+      "title",
+      "creator",
+      "date",
+      "language",
+      "subject",
+      "description",
+      "mediatype",
+      "format",
+      "downloads",
+      "publicdate"
+    ],
+    "sort": [
+      "downloads desc",
+      "publicdate desc"
+    ],
+    "rows": 50,
+    "page": 1
+  },
+
+  "filtering_criteria": {
+    "min_downloads": 10,
+    "min_pages": 20,
+    "max_pages": 1000,
+    "exclude_keywords": [
+      "modern",
+      "zeitgenössisch",
+      "21. Jahrhundert",
+      "pharmazie lehrbuch",
+      "medizinstudium",
+      "anatomie"
+    ],
+    "require_text_layer": true,
+    "public_domain_only": true
+  },
+
+  "content_quality_filters": {
+    "ocr_quality_check": true,
+    "language_detection": true,
+    "min_text_quality_score": 0.7,
+    "skip_damaged_pages": true
+  },
+
+  "rotation_strategy": {
+    "description": "Rotate through search strategies to find diverse content",
+    "mode": "round_robin",
+    "strategies_per_day": 2,
+    "min_days_between_repeats": 7
+  },
+
+  "example_queries": {
+    "basic_german_herbalism": "language:ger AND (Kräuterkunde OR Heilpflanzen) AND mediatype:texts",
+    "historical_medicine": "language:ger AND (Heilkunde OR Medizin) AND date:[1400 TO 1900] AND mediatype:texts",
+    "shamanic_practices": "(Schamanismus OR shamanism) AND (Heilung OR healing) AND mediatype:texts",
+    "germanic_traditions": "(germanische OR germanic OR norse) AND (Heilung OR medicine OR herbs) AND mediatype:texts"
+  },
+
+  "notes": [
+    "Search terms are optimized for Archive.org's search engine",
+    "Combines German and English terms for broader coverage",
+    "Filters ensure only accessible, quality texts are selected",
+    "Priority determines search order (1=highest)",
+    "Rotation strategy prevents repetitive content"
+  ]
+}
