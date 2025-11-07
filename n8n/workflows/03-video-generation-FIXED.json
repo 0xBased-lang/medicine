@@ -1,0 +1,70 @@
+{
+  "name": "03 - ComfyUI Video Generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sample script data (will come from Workflow 2 in production)\nreturn [{\n  json: {\n    \"full_script\": \"Discover ancient healing herbs like chamomile, echinacea, and turmeric\",\n    \"hook\": \"Ancient secrets of herbal medicine\"\n  }\n}];"
+      },
+      "id": "sample_data",
+      "name": "Sample Script Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8188/prompt",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"prompt\": {\n    \"3\": {\n      \"inputs\": {\n        \"seed\": Math.floor(Math.random() * 1000000),\n        \"steps\": 20,\n        \"cfg\": 7,\n        \"sampler_name\": \"euler\",\n        \"scheduler\": \"normal\",\n        \"denoise\": 1,\n        \"model\": [\"4\", 0],\n        \"positive\": [\"6\", 0],\n        \"negative\": [\"7\", 0],\n        \"latent_image\": [\"5\", 0]\n      },\n      \"class_type\": \"KSampler\"\n    },\n    \"4\": {\n      \"inputs\": {\n        \"ckpt_name\": \"sdxl_base_1.0.safetensors\"\n      },\n      \"class_type\": \"CheckpointLoaderSimple\"\n    },\n    \"5\": {\n      \"inputs\": {\n        \"width\": 1024,\n        \"height\": 1024,\n        \"batch_size\": 1\n      },\n      \"class_type\": \"EmptyLatentImage\"\n    },\n    \"6\": {\n      \"inputs\": {\n        \"text\": \"Ancient healing herbs, mystical medical illustration, educational content, high quality, detailed: \" + $json.full_script,\n        \"clip\": [\"4\", 1]\n      },\n      \"class_type\": \"CLIPTextEncode\"\n    },\n    \"7\": {\n      \"inputs\": {\n        \"text\": \"ugly, blurry, low quality, distorted, deformed\",\n        \"clip\": [\"4\", 1]\n      },\n      \"class_type\": \"CLIPTextEncode\"\n    },\n    \"8\": {\n      \"inputs\": {\n        \"samples\": [\"3\", 0],\n        \"vae\": [\"4\", 2]\n      },\n      \"class_type\": \"VAEDecode\"\n    },\n    \"9\": {\n      \"inputs\": {\n        \"filename_prefix\": \"medicine_content\",\n        \"images\": [\"8\", 0]\n      },\n      \"class_type\": \"SaveImage\"\n    }\n  }\n}) }}"
+      },
+      "id": "comfyui_request1",
+      "name": "ComfyUI Generate Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log('=== COMFYUI IMAGE GENERATION ===');\nconst response = $input.first().json;\nconsole.log('Response:', JSON.stringify(response, null, 2));\n\nif (response.prompt_id) {\n  console.log('✅ Image generation started!');\n  console.log('Prompt ID:', response.prompt_id);\n  console.log('Check output at: ~/medicine/ComfyUI_app/output/');\n} else {\n  console.log('⚠️ Unexpected response format');\n}\n\nconsole.log('================================');\n\nreturn $input.all();"
+      },
+      "id": "log_result1",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{
+        "node": "Sample Script Data",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "Sample Script Data": {
+      "main": [[{
+        "node": "ComfyUI Generate Image",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "ComfyUI Generate Image": {
+      "main": [[{
+        "node": "Log Result",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  }
+}

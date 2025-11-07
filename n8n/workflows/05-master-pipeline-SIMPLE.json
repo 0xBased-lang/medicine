@@ -1,0 +1,64 @@
+{
+  "name": "05 - Master Pipeline (Simplified)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [240, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {"name": "book_title", "value": "Ancient German Medicine", "type": "string"},
+            {"name": "book_description", "value": "Traditional healing herbs and remedies", "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-book",
+      "name": "Set Book Info",
+      "type": "n8n-nodes-base.set",
+      "position": [460, 300],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "{\"model\": \"llama3.2:3b\", \"prompt\": \"Create a 150-word TikTok script about ancient healing herbs from German medicine books. Format as JSON with: hook, full_script, word_count, hashtags array\", \"stream\": false}",
+        "options": {}
+      },
+      "id": "ollama",
+      "name": "Generate Script",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8188/prompt",
+        "requestMethod": "POST",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "{\"prompt\": {\"4\": {\"inputs\": {\"ckpt_name\": \"sdxl_base_1.0.safetensors\"}, \"class_type\": \"CheckpointLoaderSimple\"}, \"5\": {\"inputs\": {\"width\": 1024, \"height\": 1024, \"batch_size\": 1}, \"class_type\": \"EmptyLatentImage\"}, \"6\": {\"inputs\": {\"text\": \"ancient medicinal herbs, historical medicine, professional photography\", \"clip\": [\"4\", 1]}, \"class_type\": \"CLIPTextEncode\"}, \"7\": {\"inputs\": {\"text\": \"bad quality\", \"clip\": [\"4\", 1]}, \"class_type\": \"CLIPTextEncode\"}, \"3\": {\"inputs\": {\"seed\": 123, \"steps\": 15, \"cfg\": 7.5, \"sampler_name\": \"euler\", \"scheduler\": \"normal\", \"denoise\": 1, \"model\": [\"4\", 0], \"positive\": [\"6\", 0], \"negative\": [\"7\", 0], \"latent_image\": [\"5\", 0]}, \"class_type\": \"KSampler\"}, \"8\": {\"inputs\": {\"samples\": [\"3\", 0], \"vae\": [\"4\", 2]}, \"class_type\": \"VAEDecode\"}, \"9\": {\"inputs\": {\"filename_prefix\": \"master_pipeline\", \"images\": [\"8\", 0]}, \"class_type\": \"SaveImage\"}}}",
+        "options": {}
+      },
+      "id": "comfyui",
+      "name": "Generate Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {"main": [[{"node": "Set Book Info", "type": "main", "index": 0}]]},
+    "Set Book Info": {"main": [[{"node": "Generate Script", "type": "main", "index": 0}]]},
+    "Generate Script": {"main": [[{"node": "Generate Image", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"}
+}

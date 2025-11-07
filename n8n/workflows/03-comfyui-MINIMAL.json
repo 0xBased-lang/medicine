@@ -1,0 +1,79 @@
+{
+  "name": "03 - ComfyUI Image Generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start_comfyui",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8188/prompt",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "{\"3\":{\"inputs\":{\"seed\":42,\"steps\":20,\"cfg\":7,\"sampler_name\":\"euler\",\"scheduler\":\"normal\",\"denoise\":1,\"model\":[\"4\",0],\"positive\":[\"6\",0],\"negative\":[\"7\",0],\"latent_image\":[\"5\",0]},\"class_type\":\"KSampler\"},\"4\":{\"inputs\":{\"ckpt_name\":\"sdxl_base_1.0.safetensors\"},\"class_type\":\"CheckpointLoaderSimple\"},\"5\":{\"inputs\":{\"width\":1024,\"height\":1024,\"batch_size\":1},\"class_type\":\"EmptyLatentImage\"},\"6\":{\"inputs\":{\"text\":\"Ancient healing herbs, mystical medical illustration, educational, high quality, detailed\",\"clip\":[\"4\",1]},\"class_type\":\"CLIPTextEncode\"},\"7\":{\"inputs\":{\"text\":\"ugly, blurry, low quality\",\"clip\":[\"4\",1]},\"class_type\":\"CLIPTextEncode\"},\"8\":{\"inputs\":{\"samples\":[\"3\",0],\"vae\":[\"4\",2]},\"class_type\":\"VAEDecode\"},\"9\":{\"inputs\":{\"filename_prefix\":\"medicine\",\"images\":[\"8\",0]},\"class_type\":\"SaveImage\"}}"
+            }
+          ]
+        }
+      },
+      "id": "comfyui_generate",
+      "name": "Generate with ComfyUI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconsole.log('=== COMFYUI RESULT ===');\nconsole.log(JSON.stringify(response, null, 2));\nconsole.log('=====================');\nreturn [{json: response}];"
+      },
+      "id": "log_comfyui",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Generate with ComfyUI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate with ComfyUI": {
+      "main": [
+        [
+          {
+            "node": "Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

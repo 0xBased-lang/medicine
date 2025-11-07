@@ -1,0 +1,407 @@
+{
+  "name": "01 - Archive.org Content Discovery",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Daily Trigger - 9 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "id": "schedule-trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  \"json\": {\n    \"search_terms\": [\n      \"Deutsche Heilkr\u00e4uter\",\n      \"Kr\u00e4uterkunde\",\n      \"Heilpflanzen Geschichte\",\n      \"Mittelalterliche Medizin\",\n      \"Volksmedizin\",\n      \"Alchemie\",\n      \"Naturheilkunde\",\n      \"Botanik\",\n      \"Pharmazie Geschichte\"\n    ]\n  }\n}]"
+      },
+      "name": "Search Terms",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "id": "load-config"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse search terms configuration\nconst config = JSON.parse($input.item.json.data);\nconst strategies = config.search_strategies.filter(s => s.enabled);\n\n// Get current date to determine which strategy to use\nconst dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);\nconst strategyIndex = dayOfYear % strategies.length;\nconst selectedStrategy = strategies[strategyIndex];\n\n// Prepare output\nreturn {\n  json: {\n    strategy_name: selectedStrategy.name,\n    search_terms: selectedStrategy.terms.primary,\n    filters: selectedStrategy.filters,\n    api_config: config.archive_org_api,\n    filtering_criteria: config.filtering_criteria,\n    rotation_info: `Day ${dayOfYear}, using strategy ${strategyIndex + 1}/${strategies.length}`\n  }\n};"
+      },
+      "name": "Select Search Strategy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        650,
+        300
+      ],
+      "id": "select-strategy"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "term-loop",
+              "name": "search_term",
+              "type": "string",
+              "value": "={{ $json.search_terms }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Loop Over Search Terms",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        850,
+        300
+      ],
+      "id": "loop-terms"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://archive.org/advancedsearch.php",
+        "authentication": "none",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "q",
+                "value": "={{ $json.search_term + ' AND language:' + $node['Select Search Strategy'].json.filters.language + ' AND mediatype:' + $node['Select Search Strategy'].json.filters.mediatype }}"
+              },
+              {
+                "name": "fl[]",
+                "value": "identifier,title,creator,date,language,subject,description,downloads,publicdate,format"
+              },
+              {
+                "name": "rows",
+                "value": "50"
+              },
+              {
+                "name": "page",
+                "value": "1"
+              },
+              {
+                "name": "output",
+                "value": "json"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Search Archive.org",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1050,
+        300
+      ],
+      "id": "search-archive"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and filter results\nconst response = $input.item.json;\nconst docs = response.response?.docs || [];\nconst filterCriteria = $node['Select Search Strategy'].json.filtering_criteria;\n\n// Filter results based on quality criteria\nconst filteredDocs = docs.filter(doc => {\n  // Check minimum downloads\n  if (doc.downloads < filterCriteria.min_downloads) return false;\n  \n  // Check if it's text format\n  if (!doc.format || !doc.format.includes('PDF') && !doc.format.includes('Text')) return false;\n  \n  // Check for excluded keywords\n  const titleLower = (doc.title || '').toLowerCase();\n  const descLower = (doc.description || '').toLowerCase();\n  const textToCheck = titleLower + ' ' + descLower;\n  \n  for (const keyword of filterCriteria.exclude_keywords) {\n    if (textToCheck.includes(keyword.toLowerCase())) return false;\n  }\n  \n  return true;\n});\n\n// Sort by downloads (quality indicator)\nfilteredDocs.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));\n\n// Return top results\nreturn filteredDocs.slice(0, 10).map(doc => ({\n  json: {\n    identifier: doc.identifier,\n    title: doc.title,\n    creator: doc.creator,\n    date: doc.date,\n    language: doc.language,\n    subject: doc.subject,\n    description: doc.description,\n    downloads: doc.downloads,\n    format: doc.format,\n    archive_url: `https://archive.org/details/${doc.identifier}`,\n    api_url: `https://archive.org/metadata/${doc.identifier}`,\n    discovered_date: new Date().toISOString(),\n    search_term: $input.item.json.search_term,\n    strategy: $node['Select Search Strategy'].json.strategy_name\n  }\n}));"
+      },
+      "name": "Filter & Rank Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "filter-results"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "name": "Merge All Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1450,
+        300
+      ],
+      "id": "merge-results"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deduplicate and select best book for today\nconst allBooks = $input.all();\nconst uniqueBooks = new Map();\n\n// Deduplicate by identifier\nfor (const item of allBooks) {\n  const id = item.json.identifier;\n  if (!uniqueBooks.has(id) || item.json.downloads > uniqueBooks.get(id).json.downloads) {\n    uniqueBooks.set(id, item);\n  }\n}\n\n// Convert to array and sort by downloads\nconst sortedBooks = Array.from(uniqueBooks.values())\n  .sort((a, b) => b.json.downloads - a.json.downloads);\n\n// Check if we've already processed this book (basic check - in production use database)\nconst today = new Date().toISOString().split('T')[0];\nconst selectedBook = sortedBooks[0]; // Take top result\n\nif (!selectedBook) {\n  throw new Error('No suitable books found today. Try different search terms.');\n}\n\nreturn [\n  {\n    json: {\n      ...selectedBook.json,\n      selected_date: today,\n      total_candidates: sortedBooks.length,\n      status: 'ready_for_processing'\n    }\n  }\n];"
+      },
+      "name": "Select Best Book",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1650,
+        300
+      ],
+      "id": "select-book"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "filePath": "/home/user/medicine/data/discovered-books.jsonl",
+        "options": {
+          "jsonFormat": "jsonl"
+        }
+      },
+      "name": "Log Discovered Book",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [
+        1850,
+        300
+      ],
+      "id": "log-book"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.api_url }}",
+        "authentication": "none",
+        "options": {}
+      },
+      "name": "Fetch Book Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2050,
+        300
+      ],
+      "id": "fetch-metadata"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract detailed metadata\nconst metadata = $input.item.json;\nconst files = metadata.files || [];\nconst bookInfo = $node['Select Best Book'].json;\n\n// Find PDF or text files\nconst pdfFiles = files.filter(f => f.format === 'Text PDF' || f.name.endsWith('.pdf'));\nconst textFiles = files.filter(f => f.format === 'DjVuTXT' || f.name.endsWith('_djvu.txt'));\nconst ocrFile = files.find(f => f.name.endsWith('_djvu.xml') || f.name.endsWith('_abbyy.gz'));\n\n// Determine best source for text extraction\nlet textSource = null;\nif (textFiles.length > 0) {\n  textSource = {\n    type: 'text',\n    url: `https://archive.org/download/${bookInfo.identifier}/${textFiles[0].name}`,\n    filename: textFiles[0].name\n  };\n} else if (pdfFiles.length > 0) {\n  textSource = {\n    type: 'pdf',\n    url: `https://archive.org/download/${bookInfo.identifier}/${pdfFiles[0].name}`,\n    filename: pdfFiles[0].name\n  };\n} else if (ocrFile) {\n  textSource = {\n    type: 'ocr',\n    url: `https://archive.org/download/${bookInfo.identifier}/${ocrFile.name}`,\n    filename: ocrFile.name\n  };\n}\n\nif (!textSource) {\n  throw new Error('No suitable text source found for this book');\n}\n\nreturn {\n  json: {\n    book_info: bookInfo,\n    text_source: textSource,\n    total_files: files.length,\n    has_ocr: !!ocrFile,\n    page_count: metadata.metadata?.imagecount || 'unknown',\n    next_step: 'content_processing',\n    processing_ready: true\n  }\n};"
+      },
+      "name": "Prepare for Processing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        300
+      ],
+      "id": "prepare-processing"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/content-processing",
+        "authentication": "none",
+        "options": {},
+        "bodyParametersJson": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Trigger Content Processing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2450,
+        300
+      ],
+      "id": "trigger-processing",
+      "notes": "Triggers the next workflow: 02-content-processing"
+    },
+    {
+      "parameters": {
+        "mode": "jsonToBinary",
+        "options": {
+          "fileName": "={{ $node['Select Best Book'].json.identifier }}_discovery.json",
+          "mimeType": "application/json"
+        }
+      },
+      "name": "Save Discovery Report",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1,
+      "position": [
+        2650,
+        300
+      ],
+      "id": "save-report"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "filePath": "=/home/user/medicine/output/metadata/{{ $node['Select Best Book'].json.identifier }}_discovery.json"
+      },
+      "name": "Write Discovery Report",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [
+        2850,
+        300
+      ],
+      "id": "write-report"
+    }
+  ],
+  "connections": {
+    "Daily Trigger - 9 AM": {
+      "main": [
+        [
+          {
+            "node": "Load Search Terms Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Search Terms Config": {
+      "main": [
+        [
+          {
+            "node": "Select Search Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Search Strategy": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Search Terms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Search Terms": {
+      "main": [
+        [
+          {
+            "node": "Search Archive.org",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Archive.org": {
+      "main": [
+        [
+          {
+            "node": "Filter & Rank Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter & Rank Results": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Results": {
+      "main": [
+        [
+          {
+            "node": "Select Best Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Best Book": {
+      "main": [
+        [
+          {
+            "node": "Log Discovered Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Discovered Book": {
+      "main": [
+        [
+          {
+            "node": "Fetch Book Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Book Metadata": {
+      "main": [
+        [
+          {
+            "node": "Prepare for Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for Processing": {
+      "main": [
+        [
+          {
+            "node": "Trigger Content Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Content Processing": {
+      "main": [
+        [
+          {
+            "node": "Save Discovery Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Discovery Report": {
+      "main": [
+        [
+          {
+            "node": "Write Discovery Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-06T00:00:00.000Z",
+  "versionId": "1"
+}

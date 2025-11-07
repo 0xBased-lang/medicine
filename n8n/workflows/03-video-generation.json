@@ -1,0 +1,79 @@
+{
+  "name": "03 - ComfyUI Video Generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8188/prompt",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"prompt\": {\n    \"3\": {\n      \"inputs\": {\n        \"seed\": Math.floor(Math.random() * 1000000),\n        \"steps\": 20,\n        \"cfg\": 7,\n        \"sampler_name\": \"euler\",\n        \"scheduler\": \"normal\",\n        \"denoise\": 1,\n        \"model\": [\"4\", 0],\n        \"positive\": [\"6\", 0],\n        \"negative\": [\"7\", 0],\n        \"latent_image\": [\"5\", 0]\n      },\n      \"class_type\": \"KSampler\"\n    },\n    \"4\": {\n      \"inputs\": {\n        \"ckpt_name\": \"sdxl_base_1.0.safetensors\"\n      },\n      \"class_type\": \"CheckpointLoaderSimple\"\n    },\n    \"5\": {\n      \"inputs\": {\n        \"width\": 1024,\n        \"height\": 1024,\n        \"batch_size\": 1\n      },\n      \"class_type\": \"EmptyLatentImage\"\n    },\n    \"6\": {\n      \"inputs\": {\n        \"text\": \"Ancient healing herbs: \" + ($json[\"full_script\"] || \"mystical herbs, educational, high quality\"),\n        \"clip\": [\"4\", 1]\n      },\n      \"class_type\": \"CLIPTextEncode\"\n    },\n    \"7\": {\n      \"inputs\": {\n        \"text\": \"ugly, blurry, low quality, distorted\",\n        \"clip\": [\"4\", 1]\n      },\n      \"class_type\": \"CLIPTextEncode\"\n    },\n    \"8\": {\n      \"inputs\": {\n        \"samples\": [\"3\", 0],\n        \"vae\": [\"4\", 2]\n      },\n      \"class_type\": \"VAEDecode\"\n    },\n    \"9\": {\n      \"inputs\": {\n        \"filename_prefix\": \"medicine_\" + Date.now(),\n        \"images\": [\"8\", 0]\n      },\n      \"class_type\": \"SaveImage\"\n    }\n  }\n}) }}"
+      },
+      "id": "comfyui_request",
+      "name": "ComfyUI Generate Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst promptId = response.prompt_id;\n\nreturn {\n  json: {\n    prompt_id: promptId,\n    status: \"queued\",\n    message: \"Image generation started\",\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse_response",
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log('=== COMFYUI IMAGE GENERATION ===');\nconst data = $input.first().json;\nconsole.log('Prompt ID:', data.prompt_id);\nconsole.log('Status:', data.status);\nconsole.log('Timestamp:', data.timestamp);\nconsole.log('================================');\n\nreturn $input.all();"
+      },
+      "id": "log_result",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [[{
+        "node": "ComfyUI Generate Image",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "ComfyUI Generate Image": {
+      "main": [[{
+        "node": "Parse Response",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "Parse Response": {
+      "main": [[{
+        "node": "Log Result",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-06T00:00:00.000Z",
+  "versionId": "1"
+}

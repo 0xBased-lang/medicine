@@ -1,0 +1,97 @@
+{
+  "name": "02 - AI Content Processing & Script Generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "id": "start"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"llama3.2:3b\",\n  \"prompt\": \"Create a viral TikTok script about ancient healing herbs. Write exactly 150 words. Return as JSON with fields: hook, full_script, word_count.\",\n  \"stream\": false\n}",
+        "options": {}
+      },
+      "name": "Generate with Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        450,
+        300
+      ],
+      "id": "ollama-generate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Ollama response\nconst response = $input.item.json;\nconst text = response.response || '';\n\n// Try to extract JSON\nconst jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\nlet script = {hook: '', full_script: text, word_count: text.split(/\\s+/).length};\n\nif (jsonMatch) {\n  try {\n    script = JSON.parse(jsonMatch[0]);\n  } catch(e) {\n    // Keep default\n  }\n}\n\nconsole.log('GENERATED SCRIPT:', JSON.stringify(script, null, 2));\n\nreturn {\n  json: {\n    script_id: `script_${Date.now()}`,\n    hook: script.hook || 'Ancient healing secrets revealed...',\n    full_script: script.full_script || text,\n    word_count: script.word_count || text.split(/\\s+/).length,\n    emotional_tone: 'mysterious',\n    suggested_hashtags: ['ancient medicine', 'healing herbs', 'wellness'],\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Parse Script",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        650,
+        300
+      ],
+      "id": "parse-script"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log to console for verification\nconsole.log('FINAL SCRIPT:', JSON.stringify($input.item.json, null, 2));\nreturn $input.item;"
+      },
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "log-result"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Generate with Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate with Ollama": {
+      "main": [
+        [
+          {
+            "node": "Parse Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Script": {
+      "main": [
+        [
+          {
+            "node": "Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

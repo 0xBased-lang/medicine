@@ -1,0 +1,93 @@
+{
+  "name": "01 - Archive.org Content Discovery",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "id": "start"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://archive.org/advancedsearch.php?q=deutsche+heilkr\u00e4uter&fl=identifier,title,creator&output=json&rows=1",
+        "options": {}
+      },
+      "name": "Search Archive.org",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        450,
+        300
+      ],
+      "id": "search-archive"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract first book from results\nconst response = $input.item.json;\nconst docs = response.response?.docs || [];\n\nif (docs.length === 0) {\n  return {json: {error: 'No books found', status: 'empty'}};\n}\n\nconst book = docs[0];\nreturn {\n  json: {\n    identifier: book.identifier,\n    title: book.title,\n    creator: book.creator,\n    url: `https://archive.org/details/${book.identifier}`,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Extract Book Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        650,
+        300
+      ],
+      "id": "extract-book"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log to console for verification\nconsole.log('DISCOVERED BOOK:', JSON.stringify($input.item.json, null, 2));\nreturn $input.item;"
+      },
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        300
+      ],
+      "id": "log-result"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Search Archive.org",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Archive.org": {
+      "main": [
+        [
+          {
+            "node": "Extract Book Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Book Data": {
+      "main": [
+        [
+          {
+            "node": "Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
